@@ -1,10 +1,8 @@
-#include<GL/glew.h>
-#include <GLFW/glfw3.h>
-#include<iostream>
-#include<string>
-#include<glm/glm.hpp>
+#include <GL/glew.h>
+#include <iostream>
+#include <string>
+#include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
 
 #include "opengl_util.h"
 #include "vertex_buffer.h"
@@ -20,7 +18,8 @@
 #include "base_camera.h"
 #include "util.h"
 
-struct un_proj {
+struct un_proj
+{
 	glm::mat4 ClipToCamera;
 	glm::ivec2 WindowSize;
 };
@@ -34,7 +33,8 @@ static glm::vec2 CameraRotChange;
 
 static un_proj UnProj;
 
-void WindowSizeChangeCallback(GLFWwindow* window, int Width, int Height)
+/*
+void WindowSizeChangeCallback(GLFWwindow *window, int Width, int Height)
 {
 	std::cout << "Window size changed!" << std::endl;
 	AspectRatio = (real32)Width / (real32)Height;
@@ -43,44 +43,57 @@ void WindowSizeChangeCallback(GLFWwindow* window, int Width, int Height)
 	GLCall(glViewport(0, 0, Width, Height));
 }
 
-void KeyboardInputCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+
+void KeyboardInputCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
-	if (key == GLFW_KEY_W && action == GLFW_REPEAT) {
+	if (key == GLFW_KEY_W && action == GLFW_REPEAT)
+	{
 		CameraPosChange.x = 1.0f;
 	}
-	if (key == GLFW_KEY_S && action == GLFW_REPEAT) {
+	if (key == GLFW_KEY_S && action == GLFW_REPEAT)
+	{
 		CameraPosChange.x = -1.0f;
 	}
-	if (key == GLFW_KEY_A && action == GLFW_REPEAT) {
+	if (key == GLFW_KEY_A && action == GLFW_REPEAT)
+	{
 		CameraPosChange.y = -1.0f;
 	}
-	if (key == GLFW_KEY_D && action == GLFW_REPEAT) {
+	if (key == GLFW_KEY_D && action == GLFW_REPEAT)
+	{
 		CameraPosChange.y = 1.0f;
 	}
-	if (key == GLFW_KEY_Q && action == GLFW_REPEAT) {
+	if (key == GLFW_KEY_Q && action == GLFW_REPEAT)
+	{
 		CameraPosChange.z = -1.0f;
 	}
-	if (key == GLFW_KEY_E && action == GLFW_REPEAT) {
+	if (key == GLFW_KEY_E && action == GLFW_REPEAT)
+	{
 		CameraPosChange.z = 1.0f;
 	}
 
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	{
 		std::cout << "ESCAPE..." << std::endl;
 		glfwSetWindowShouldClose(window, 1);
 	}
 
-	if (key == GLFW_KEY_I && action == GLFW_PRESS) {
+	if (key == GLFW_KEY_I && action == GLFW_PRESS)
+	{
 		std::cout << "I pressed" << std::endl;
-		if (invers) {
+		if (invers)
+		{
 			invers = false;
 		}
-		else {
+		else
+		{
 			invers = true;
 		}
 	}
 }
 
-void CursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+
+void CursorPosCallback(GLFWwindow *window, double xpos, double ypos)
+{
 	int W, H;
 	glfwGetWindowSize(window, &W, &H);
 
@@ -94,13 +107,15 @@ void CursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
 
 	glfwSetCursorPos(window, CenterX, CenterY);
 }
+*/
 
-glm::mat4 TranslationMtx(real32 Offset) {
+glm::mat4 TranslationMtx(real32 Offset)
+{
 	glm::mat4 Translation(1.0f);
 	const real32 fLoopDuration = 5.0f;
 	const real32 fScale = 3.14159f * 2.0f / fLoopDuration;
 
-	real32 fElapsedTime = glfwGetTime() / 1.0f;
+	real32 fElapsedTime = 1.0; //glfwGetTime() / 1.0f;
 
 	real32 fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
 
@@ -108,14 +123,15 @@ glm::mat4 TranslationMtx(real32 Offset) {
 	Translation[3].y = sinf(fCurrTimeThroughLoop * fScale) * Offset;
 	Translation[3].z = -50.0f;
 	Translation[0].x = fCurrTimeThroughLoop / 4.0f;
-	Translation[1].y =  fCurrTimeThroughLoop / 4.0f;
+	Translation[1].y = fCurrTimeThroughLoop / 4.0f;
 	return Translation;
 }
 
-glm::mat4 RotationMtx() {
+glm::mat4 RotationMtx()
+{
 	const float degToRad = 3.14159f * 2.0f / 360.0f;
 	const real32 fLoopDuration = 360.0f;
-	real32 fElapsedTime = glfwGetTime() / 1.0f;
+	real32 fElapsedTime = 1.0; //glfwGetTime() / 1.0f;
 	real32 fCurrTimeThroughLoop = fmodf(fElapsedTime, fLoopDuration);
 	float fAngRad = fCurrTimeThroughLoop * degToRad * 40.0f;
 	float fCos = cosf(fAngRad);
@@ -128,15 +144,15 @@ glm::mat4 RotationMtx() {
 
 	glm::mat3 theMat(1.0f);
 	theMat[0].x = (axis.x * axis.x) + ((1 - axis.x * axis.x) * fCos);
-	theMat[1].x = axis.x * axis.y * (fInvCos)-(axis.z * fSin);
-	theMat[2].x = axis.x * axis.z * (fInvCos)+(axis.y * fSin);
+	theMat[1].x = axis.x * axis.y * (fInvCos) - (axis.z * fSin);
+	theMat[2].x = axis.x * axis.z * (fInvCos) + (axis.y * fSin);
 
-	theMat[0].y = axis.x * axis.y * (fInvCos)+(axis.z * fSin);
+	theMat[0].y = axis.x * axis.y * (fInvCos) + (axis.z * fSin);
 	theMat[1].y = (axis.y * axis.y) + ((1 - axis.y * axis.y) * fCos);
-	theMat[2].y = axis.y * axis.z * (fInvCos)-(axis.x * fSin);
+	theMat[2].y = axis.y * axis.z * (fInvCos) - (axis.x * fSin);
 
-	theMat[0].z = axis.x * axis.z * (fInvCos)-(axis.y * fSin);
-	theMat[1].z = axis.y * axis.z * (fInvCos)+(axis.x * fSin);
+	theMat[0].z = axis.x * axis.z * (fInvCos) - (axis.y * fSin);
+	theMat[1].z = axis.y * axis.z * (fInvCos) + (axis.x * fSin);
 	theMat[2].z = (axis.z * axis.z) + ((1 - axis.z * axis.z) * fCos);
 	glm::mat4 res(theMat);
 	return res;
@@ -158,7 +174,7 @@ glm::vec3 CameraOrbitPosition() {
 }
 */
 
-glm::mat4 CalcLookAtMatrix(const glm::vec3& cameraPt, const glm::vec3& lookPt, const glm::vec3& upPt)
+glm::mat4 CalcLookAtMatrix(const glm::vec3 &cameraPt, const glm::vec3 &lookPt, const glm::vec3 &upPt)
 {
 	glm::vec3 lookDir = glm::normalize(lookPt - cameraPt);
 	glm::vec3 upDir = glm::normalize(upPt);
@@ -179,8 +195,9 @@ glm::mat4 CalcLookAtMatrix(const glm::vec3& cameraPt, const glm::vec3& lookPt, c
 	return rotMat * transMat;
 }
 
-void BuildGaussianData(std::vector<GLubyte>& TextureData, int CosAngleResolution, int ShineResolution) {
-	TextureData.resize(ShineResolution * CosAngleResolution);
+void BuildGaussianData(std::vector<GLubyte> &TextureData, int CosAngleResolution, int ShineResolution)
+{
+	TextureData.resize(size_t(ShineResolution) * size_t(CosAngleResolution));
 
 	auto currIt = TextureData.begin();
 	for (int iShin = 1; iShin <= ShineResolution; iShin++)
@@ -200,49 +217,21 @@ void BuildGaussianData(std::vector<GLubyte>& TextureData, int CosAngleResolution
 	}
 }
 
-int main() {
+void UpdateAndRender()
+{
 
 	CameraPolarPos.x = 0.0f;
 	CameraPolarPos.y = -45.0f;
 	CameraPolarPos.z = 150.0f;
 
-	GLFWwindow* Window;
-	//Initialize GLFW so that we can use OpenGL functionality on our plaform
-	if (!glfwInit()) {
-		return -1;
-	}
-
-	//Specify "hints" as to what version of OpenGL we want to use
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-	//Specify what profile of OpenGl we want to use, we want to use 'core'
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	//We use GLFW library to create a windows window with attached OpenGL context
-	Window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-	if (!Window) {
-		glfwTerminate();
-		return -1;
-	}
-
-	//Make our windows context the current OpenGL context (in case we have multiple windows)
-	glfwMakeContextCurrent(Window);
-	//We set swap buffers interval to be 1, meaning swap buffer once every monitor refresh rate
-	glfwSwapInterval(1);
-
-	//Initi GL Extension Wrangler (GLEW), in order to get access to all available OpenGL functions on our machine (platform)
-	if (glewInit() != GLEW_OK) {
-		std::cout << "Error" << std::endl;
-		return -1;
-	}
-	else {
-		std::cout << glGetString(GL_VERSION) << std::endl;
+	/*
+ 		std::cout << glGetString(GL_VERSION) << std::endl;
 		//Set window specific callbacks
 		glfwSetWindowSizeCallback(Window, WindowSizeChangeCallback);
 		glfwSetKeyCallback(Window, KeyboardInputCallback);
 		glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		glfwSetCursorPosCallback(Window, CursorPosCallback);
-	}
+ */
 
 	//Create our OpenGL Renderer object, this object perform all the draw calls, and other associated functionality
 	opengl_renderer Renderer;
@@ -261,11 +250,9 @@ int main() {
 		index_buffer OBJIndexBuffer(Mesh);
 		//render_object CubeObj(OBJVertexArray, OBJIndexBuffer);
 
-
 		//Enable Blending, and specify blending mode (function)
 		GLCall(glEnable(GL_BLEND));
 		GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-	
 
 		//We read source code from our shader files
 		std::string VertexShaderSource = ReadFile("../../../resources/shaders/test_texture_vert.glsl");
@@ -273,24 +260,24 @@ int main() {
 		//We create (compile) shader during construction
 		shader_program Shader(VertexShaderSource, FragmentShaderSource);
 		Shader.Bind();
-		
+
 		real32 zNear = 0.1f;
 		real32 zFar = 100000.0f;
-		int32 W, H;
-		glfwGetWindowSize(Window, &W, &H);
-		AspectRatio = (real32)W / (real32)H;
-		base_camera Camera(base_camera::FrustumScaleFromFOV(45.0f), AspectRatio, zNear, zFar);
-		real32 CenterX = ((real32)W) / 2.0f;
-		real32 CenterY = ((real32)H) / 2.0f;
-		glfwSetCursorPos(Window, CenterX, CenterY);
+		//int32 W, H;
+		//glfwGetWindowSize(Window, &W, &H);
+		//AspectRatio = (real32)W / (real32)H;
+		//base_camera Camera(base_camera::FrustumScaleFromFOV(45.0f), AspectRatio, zNear, zFar);
+		//real32 CenterX = ((real32)W) / 2.0f;
+		//real32 CenterY = ((real32)H) / 2.0f;
+		//glfwSetCursorPos(Window, CenterX, CenterY);
 
-		Renderer.CreateUniformBuffer("CameraProjectionMtxStack", 2*sizeof(glm::mat4));
-		Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
-		Renderer.BindUniformBuffer("CameraProjectionMtxStack", 1);
-		Shader.BindUniformBlock("ub_GlobalMatrices", 1);
+		//Renderer.CreateUniformBuffer("CameraProjectionMtxStack", 2 * sizeof(glm::mat4));
+		//Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
+		//Renderer.BindUniformBuffer("CameraProjectionMtxStack", 1);
+		//Shader.BindUniformBlock("ub_GlobalMatrices", 1);
 
-		UnProj.ClipToCamera = glm::inverse(Camera.GetPerspectiveTransform());
-		UnProj.WindowSize = glm::ivec2(640, 480);
+		//UnProj.ClipToCamera = glm::inverse(Camera.GetPerspectiveTransform());
+		//UnProj.WindowSize = glm::ivec2(640, 480);
 
 		//Renderer.CreateUniformBuffer("UnProjection", sizeof(un_proj));
 		//Renderer.SetUniformBufferData("UnProjection", &UnProj, sizeof(un_proj), 0);
@@ -311,7 +298,7 @@ int main() {
 		//texture2d GaussAngleTexture(&GaussianTexture[0], 256, 256, 1);
 
 		int32 Width, Height, BytesPerPixel;
-		uint8* PixelBuffer = nullptr;
+		uint8 *PixelBuffer = nullptr;
 		//LoadPNG("../../../resources/textures/checker.png", &PixelBuffer, Width, Height, BytesPerPixel, 1);
 		texture2d CheckerTexture("../../../resources/textures/checker.png", false, 8, 1);
 		//texture2d ShineTexture(PixelBuffer, Width, Height, BytesPerPixel);
@@ -322,8 +309,6 @@ int main() {
 		CheckerTexture.Bind(0);
 		GLCall(glBindSampler(0, SamplerID));
 		Shader.SetUniform1i("checkerTexture", 0);
-
-		
 
 		Shader.Unbind();
 
@@ -340,11 +325,13 @@ int main() {
 		glm::mat3 NormalTrans;
 		glm::vec3 CamLightPos;
 		glm::vec4 LightPos(55.0f, 40.0f, 0.0f, 1.0f);
-		while (!glfwWindowShouldClose(Window)) {
+		/*
+		while (!glfwWindowShouldClose(Window))
+		{
 			Renderer.Clear();
-			
 
-			if (UpdateAspectRatio) {
+			if (UpdateAspectRatio)
+			{
 				Camera.UpdateAspectRatio(AspectRatio);
 				UnProj.ClipToCamera = glm::inverse(Camera.GetPerspectiveTransform());
 				Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
@@ -353,7 +340,7 @@ int main() {
 				Shader.Unbind();
 				UpdateAspectRatio = false;
 			}
-			
+
 			//Perform a draw call via our renderer
 			Shader.Bind();
 			Camera.UpdatePosition(CameraPosChange);
@@ -365,7 +352,8 @@ int main() {
 			//Shader.SetUniformMtx4("u_ModelTransformation", ModelTrans);
 			NormalTrans = glm::mat3(CamTransMtx);
 			//Used to fix normals when using non uniform scaling....
-			if (invers) {
+			if (invers)
+			{
 				NormalTrans = glm::transpose(glm::inverse(NormalTrans));
 			}
 			CamLightPos = (CamTransMtx * (RotationMtx() * LightPos));
@@ -378,8 +366,6 @@ int main() {
 			glfwSwapBuffers(Window);
 			glfwPollEvents();
 		}
+		*/
 	}
-	
-	glfwTerminate();
-	return 0;
 }

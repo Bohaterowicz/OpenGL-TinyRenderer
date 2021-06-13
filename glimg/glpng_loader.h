@@ -16,6 +16,16 @@ namespace glimg{
         inline bool32 operator==(const uint32& lhs, const chunk_type& rhs){return (lhs == static_cast<uint32>(rhs));}
         inline bool operator!=(const uint32& lhs, const chunk_type& rhs){return (lhs != static_cast<uint32>(rhs));}
 
+        struct decompressed_data{
+            uint8* Pixels;
+
+        };
+
+        struct data_chunk_info{
+            uint8* DataPtr;
+            uint32 DataSize;
+        };
+
         struct png_loader_result{
             uint32 x;
         };
@@ -32,5 +42,6 @@ namespace glimg{
 
         png_loader_result PNGLoader(void* PNGData, size Size);
         uint32 GetChannelCount(uint8 ColorType);
+        decompressed_data DecompressData(uint8* DataBuffer, uint32 BufferSize);
     }
 }
