@@ -1,3 +1,4 @@
+#include "tiny_renderer.h"
 #include <GL/glew.h>
 #include <iostream>
 #include <string>
@@ -10,13 +11,24 @@
 #include "vertex_array.h"
 #include "vertex_buffer_layout.h"
 #include "shader_program.h"
-#include "opengl_renderer.h"
 #include "texture2d.h"
 #include "texture1d.h"
 #include "mesh_data.h"
 #include "render_object.h"
 #include "base_camera.h"
 #include "util.h"
+
+/////////CAMERA DEFINES////////
+
+#define FRUSTUM_Z_NEAR 0.01f
+#define FRUSTUM_Z_FAR 100000.f
+#define CAMERA_FOV 45.0f
+
+#define CAMERA_POLAR_INIT_X 0.0f
+#define CAMERA_POLAR_INIT_Y -45.0f
+#define CAMERA_POLAR_INIT_Z 150.0f
+
+///////////////////////////////
 
 struct un_proj
 {
@@ -34,15 +46,6 @@ static glm::vec2 CameraRotChange;
 static un_proj UnProj;
 
 /*
-void WindowSizeChangeCallback(GLFWwindow *window, int Width, int Height)
-{
-	std::cout << "Window size changed!" << std::endl;
-	AspectRatio = (real32)Width / (real32)Height;
-	UpdateAspectRatio = true;
-	UnProj.WindowSize = glm::ivec2(Width, Height);
-	GLCall(glViewport(0, 0, Width, Height));
-}
-
 
 void KeyboardInputCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
@@ -217,34 +220,32 @@ void BuildGaussianData(std::vector<GLubyte> &TextureData, int CosAngleResolution
 	}
 }
 
-void UpdateAndRender()
+void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state &TinyRendererState, tiny_renderer_input &Input)
 {
 
-	CameraPolarPos.x = 0.0f;
-	CameraPolarPos.y = -45.0f;
-	CameraPolarPos.z = 150.0f;
+	CameraPolarPos.x = CAMERA_POLAR_INIT_X;
+	CameraPolarPos.y = CAMERA_POLAR_INIT_Y;
+	CameraPolarPos.z = CAMERA_POLAR_INIT_Z;
 
-	/*
- 		std::cout << glGetString(GL_VERSION) << std::endl;
-		//Set window specific callbacks
-		glfwSetWindowSizeCallback(Window, WindowSizeChangeCallback);
-		glfwSetKeyCallback(Window, KeyboardInputCallback);
-		glfwSetInputMode(Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		glfwSetCursorPosCallback(Window, CursorPosCallback);
- */
+	if (TinyRendererState.IsInitialized == FALSE)
+	{
+		//Create our OpenGL Renderer object, this object perform all the draw calls, and other associated functionality
+		TinyRendererState.OpenGlRenderer = std::make_unique<opengl_renderer>();
+		TinyRendererState.IsInitialized = TRUE;
+	}
 
-	//Create our OpenGL Renderer object, this object perform all the draw calls, and other associated functionality
-	opengl_renderer Renderer;
+	auto &Renderer = *TinyRendererState.OpenGlRenderer;
 
 	{
+		GLCall(glViewport(0, 0, WindowInfo.ClientWidth, WindowInfo.ClientHeight));
 
 		mesh_data Mesh = ReadObjFile("../../../resources/meshes/plane_big.obj");
 		vertex_buffer OBJVertexBuffer(Mesh);
 		//Create an vertex buffer layout object, that specifues the layout of data in the vertex buffer
 		vertex_buffer_layout OBJVertexBufferLayout;
-		OBJVertexBufferLayout.AddLayoutElementF(3, false); //Vertex positions
-		OBJVertexBufferLayout.AddLayoutElementF(3, false); //Normals
-		OBJVertexBufferLayout.AddLayoutElementF(2, false); //Texture coords
+		OBJVertexBufferLayout.AddLayoutElementF(3, FALSE); //Vertex positions
+		OBJVertexBufferLayout.AddLayoutElementF(3, FALSE); //Normals
+		OBJVertexBufferLayout.AddLayoutElementF(2, FALSE); //Texture coords
 		vertex_array OBJVertexArray;
 		OBJVertexArray.BindBufferLayout(OBJVertexBuffer, OBJVertexBufferLayout); //TODO: This maybe should happen in vertex array constructor
 		index_buffer OBJIndexBuffer(Mesh);
@@ -261,29 +262,22 @@ void UpdateAndRender()
 		shader_program Shader(VertexShaderSource, FragmentShaderSource);
 		Shader.Bind();
 
-		real32 zNear = 0.1f;
-		real32 zFar = 100000.0f;
-		//int32 W, H;
-		//glfwGetWindowSize(Window, &W, &H);
-		//AspectRatio = (real32)W / (real32)H;
-		//base_camera Camera(base_camera::FrustumScaleFromFOV(45.0f), AspectRatio, zNear, zFar);
-		//real32 CenterX = ((real32)W) / 2.0f;
-		//real32 CenterY = ((real32)H) / 2.0f;
-		//glfwSetCursorPos(Window, CenterX, CenterY);
+		AspectRatio = (real32)WindowInfo.ClientWidth / (real32)WindowInfo.ClientHeight;
+		base_camera Camera(base_camera::FrustumScaleFromFOV(CAMERA_FOV), AspectRatio, FRUSTUM_Z_NEAR, FRUSTUM_Z_FAR);
 
-		//Renderer.CreateUniformBuffer("CameraProjectionMtxStack", 2 * sizeof(glm::mat4));
-		//Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
-		//Renderer.BindUniformBuffer("CameraProjectionMtxStack", 1);
-		//Shader.BindUniformBlock("ub_GlobalMatrices", 1);
+		Renderer.CreateUniformBuffer("CameraProjectionMtxStack", 2 * sizeof(glm::mat4));
+		Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
+		Renderer.BindUniformBuffer("CameraProjectionMtxStack", 1);
+		Shader.BindUniformBlock("ub_GlobalMatrices", 1);
 
-		//UnProj.ClipToCamera = glm::inverse(Camera.GetPerspectiveTransform());
-		//UnProj.WindowSize = glm::ivec2(640, 480);
+		UnProj.ClipToCamera = glm::inverse(Camera.GetPerspectiveTransform());
+		UnProj.WindowSize = glm::ivec2(WindowInfo.ClientWidth, WindowInfo.ClientHeight);
 
-		//Renderer.CreateUniformBuffer("UnProjection", sizeof(un_proj));
-		//Renderer.SetUniformBufferData("UnProjection", &UnProj, sizeof(un_proj), 0);
-		//Renderer.BindUniformBuffer("UnProjection", 2);
-		//Shader.BindUniformBlock("ub_UnProjection", 2);
-		GLfloat maxAniso = 0.0f;
+		Renderer.CreateUniformBuffer("UnProjection", sizeof(un_proj));
+		Renderer.SetUniformBufferData("UnProjection", &UnProj, sizeof(un_proj), 0);
+		Renderer.BindUniformBuffer("UnProjection", 2);
+		Shader.BindUniformBlock("ub_UnProjection", 2);
+		GLfloat maxAniso = 0.0F;
 		GLCall(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso));
 		GLuint SamplerID;
 		GLCall(glGenSamplers(1, &SamplerID));
@@ -297,8 +291,8 @@ void UpdateAndRender()
 		//BuildGaussianData(GaussianTexture, 256, 256);
 		//texture2d GaussAngleTexture(&GaussianTexture[0], 256, 256, 1);
 
-		int32 Width, Height, BytesPerPixel;
-		uint8 *PixelBuffer = nullptr;
+		//int32 Width, Height, BytesPerPixel;
+		//uint8 *PixelBuffer = nullptr;
 		//LoadPNG("../../../resources/textures/checker.png", &PixelBuffer, Width, Height, BytesPerPixel, 1);
 		texture2d CheckerTexture("../../../resources/textures/checker.png", false, 8, 1);
 		//texture2d ShineTexture(PixelBuffer, Width, Height, BytesPerPixel);
@@ -325,10 +319,34 @@ void UpdateAndRender()
 		glm::mat3 NormalTrans;
 		glm::vec3 CamLightPos;
 		glm::vec4 LightPos(55.0f, 40.0f, 0.0f, 1.0f);
+		Renderer.Clear();
+
+		//Perform a draw call via our renderer
+		Shader.Bind();
+		Camera.UpdatePosition(CameraPosChange);
+		Camera.UpdateForwardVector(CameraRotChange);
+		CameraRotChange = {};
+		CameraPosChange = {};
+		CamTransMtx = Camera.GetCmameraTransformationMatrix(); //CalcLookAtMatrix(CameraOrbitPosition(), CameraTargetPos, glm::vec3(0.0f, 1.0f, 0.0f));
+		Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), 0);
+		//Shader.SetUniformMtx4("u_ModelTransformation", ModelTrans);
+		NormalTrans = glm::mat3(CamTransMtx);
+		//Used to fix normals when using non uniform scaling....
+		if (invers)
+		{
+			NormalTrans = glm::transpose(glm::inverse(NormalTrans));
+		}
+		CamLightPos = (CamTransMtx * (RotationMtx() * LightPos));
+		Shader.SetUniform3f("u_CameraSpaceLight", CamLightPos);
+		Shader.SetUniform1i("u_UseSquaredAttenuationDistance", 1);
+		Shader.SetUniform1f("u_LightAttenuation", 0.0001f);
+		Renderer.Draw(OBJVertexArray, OBJIndexBuffer, Shader);
+		Shader.Unbind();
+
 		/*
 		while (!glfwWindowShouldClose(Window))
 		{
-			Renderer.Clear();
+			
 
 			if (UpdateAspectRatio)
 			{
@@ -340,31 +358,6 @@ void UpdateAndRender()
 				Shader.Unbind();
 				UpdateAspectRatio = false;
 			}
-
-			//Perform a draw call via our renderer
-			Shader.Bind();
-			Camera.UpdatePosition(CameraPosChange);
-			Camera.UpdateForwardVector(CameraRotChange);
-			CameraRotChange = {};
-			CameraPosChange = {};
-			CamTransMtx = Camera.GetCmameraTransformationMatrix(); //CalcLookAtMatrix(CameraOrbitPosition(), CameraTargetPos, glm::vec3(0.0f, 1.0f, 0.0f));
-			Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), 0);
-			//Shader.SetUniformMtx4("u_ModelTransformation", ModelTrans);
-			NormalTrans = glm::mat3(CamTransMtx);
-			//Used to fix normals when using non uniform scaling....
-			if (invers)
-			{
-				NormalTrans = glm::transpose(glm::inverse(NormalTrans));
-			}
-			CamLightPos = (CamTransMtx * (RotationMtx() * LightPos));
-			Shader.SetUniform3f("u_CameraSpaceLight", CamLightPos);
-			Shader.SetUniform1i("u_UseSquaredAttenuationDistance", 1);
-			Shader.SetUniform1f("u_LightAttenuation", 0.0001f);
-			Renderer.Draw(OBJVertexArray, OBJIndexBuffer, Shader);
-			Shader.Unbind();
-			//Swap buffers will display current framebuffer to the screen (window)
-			glfwSwapBuffers(Window);
-			glfwPollEvents();
 		}
 		*/
 	}

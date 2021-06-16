@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(TinyRenderer VERSION 0.1.0)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_compile_definitions(GLEW_STATIC)
 
 INCLUDE_DIRECTORIES(./src ./src/win32 ./externals/GLEW/include ./externals/GLFW/include ./externals/GLM)
 
 add_compile_options(/W2 /WX)
-add_compile_definitions(DEBUG)
+add_compile_definitions(DEBUG MSVC)
 
 file(GLOB SOURCES "src/*.cpp")
 file(GLOB WIN32_SOURCES "src/win32/*.cpp")

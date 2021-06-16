@@ -356,5 +356,5 @@ MigrationBackup/
 # Ignore build dir
 build/
 out/
-
+CMakeFiles/
 
