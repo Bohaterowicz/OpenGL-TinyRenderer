@@ -15,7 +15,6 @@
 #include "texture1d.h"
 #include "mesh_data.h"
 #include "render_object.h"
-#include "base_camera.h"
 #include "util.h"
 
 /////////CAMERA DEFINES////////
@@ -231,6 +230,8 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 	{
 		//Create our OpenGL Renderer object, this object perform all the draw calls, and other associated functionality
 		TinyRendererState.OpenGlRenderer = std::make_unique<opengl_renderer>();
+		AspectRatio = (real32)WindowInfo.ClientWidth / (real32)WindowInfo.ClientHeight;
+		TinyRendererState.Camera = std::make_unique<base_camera>(base_camera::FrustumScaleFromFOV(CAMERA_FOV), AspectRatio, FRUSTUM_Z_NEAR, FRUSTUM_Z_FAR);
 		TinyRendererState.IsInitialized = TRUE;
 	}
 
@@ -238,6 +239,7 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 
 	{
 		GLCall(glViewport(0, 0, WindowInfo.ClientWidth, WindowInfo.ClientHeight));
+		auto &Camera = *TinyRendererState.Camera;
 
 		mesh_data Mesh = ReadObjFile("../../../resources/meshes/plane_big.obj");
 		vertex_buffer OBJVertexBuffer(Mesh);
@@ -261,9 +263,6 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 		//We create (compile) shader during construction
 		shader_program Shader(VertexShaderSource, FragmentShaderSource);
 		Shader.Bind();
-
-		AspectRatio = (real32)WindowInfo.ClientWidth / (real32)WindowInfo.ClientHeight;
-		base_camera Camera(base_camera::FrustumScaleFromFOV(CAMERA_FOV), AspectRatio, FRUSTUM_Z_NEAR, FRUSTUM_Z_FAR);
 
 		Renderer.CreateUniformBuffer("CameraProjectionMtxStack", 2 * sizeof(glm::mat4));
 		Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
@@ -323,9 +322,10 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 
 		//Perform a draw call via our renderer
 		Shader.Bind();
+		CameraRotChange = glm::vec2(Input.Mouse.dX, Input.Mouse.dY);
 		Camera.UpdatePosition(CameraPosChange);
 		Camera.UpdateForwardVector(CameraRotChange);
-		CameraRotChange = {};
+		//CameraRotChange = {};
 		CameraPosChange = {};
 		CamTransMtx = Camera.GetCmameraTransformationMatrix(); //CalcLookAtMatrix(CameraOrbitPosition(), CameraTargetPos, glm::vec3(0.0f, 1.0f, 0.0f));
 		Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), 0);

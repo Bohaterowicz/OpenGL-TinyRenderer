@@ -1,13 +1,11 @@
 #include "win32_tinyrenderer.h"
-#include "tiny_renderer.h"
 #include "GL/glew.h"
 #include "GL/wglew.h"
 #include <string>
 #include <iostream>
 
 #define TARGET_FRAMERATE 60
-
-static win32_window_state WindowState;
+#define HIDE_CURSOR 1
 
 //Windows Entry point
 INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In_ LPSTR CmdLine, _In_ int ShowCmd)
@@ -39,17 +37,19 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
     //Register window class in OS (needed before using create window)
     if (RegisterClassExA(&WndClass) != 0)
     {
+        //Alocate our window state struct, this will be used to store the golbal state of the window.
+        win32_window_state *WindowState = new (std::nothrow) win32_window_state;
+        if (WindowState != nullptr)
+        {
+            *WindowState = {};
+        }
+
         //Create window
         HWND Window = CreateWindowExA(0, WndClass.lpszClassName, "TinyRenderer", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                                      CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, Instance, 0);
-        //check if we got a valid window handle
-        if (Window != NULL)
+                                      CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, Instance, WindowState);
+        //check if we got a valid window handle and state
+        if (Window != NULL && WindowState != nullptr)
         {
-            //Get client dimensions
-            win32_client_dim ClientDim = Win32GetClientDimension(Window);
-            WindowState.ClientWidth = ClientDim.Width;
-            WindowState.ClientHeight = ClientDim.Height;
-
             //NOTE: Set up of the target framerate of the window, Currently the target will be set in TARGET_FRAMERATE define
             HDC RefreshDC = GetDC(Window);
             //try to get the refresh rate of the monitor from OS
@@ -73,13 +73,14 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
             tiny_renderer_input Input = {};
 
             //NOTE: Main window loop
-            WindowState.Running = TRUE;
-            while (WindowState.Running == TRUE)
+            WindowState->Running = TRUE;
+            while (WindowState->Running == TRUE)
             {
-                Win32ProcessPendingWindowMessages();
+                Win32ProcessPendingWindowMessages(WindowState, &Input);
+                Win32ProcessMouseInput(Window, WindowState, &Input);
                 tiny_renderer_window_info WindowInfo = {};
-                WindowInfo.ClientWidth = WindowState.ClientWidth;
-                WindowInfo.ClientHeight = WindowState.ClientWidth;
+                WindowInfo.ClientWidth = WindowState->ClientWidth;
+                WindowInfo.ClientHeight = WindowState->ClientWidth;
                 UpdateAndRender(WindowInfo, TinyRendererState, Input);
                 HDC WindowDC = GetDC(Window);
                 SwapBuffers(WindowDC);
@@ -113,6 +114,19 @@ LRESULT CALLBACK Win32TinyRendererWindowProc(HWND Window, UINT Msg, WPARAM WPara
             //NOTE: Currently there is only opengl, if we fail to initialize it, the application has to close. If we were to support other (like Direct3D), then we could try to fallback to those.
             PostQuitMessage(-1);
         }
+        else
+        {
+            win32_window_state *WindowState;
+            CREATESTRUCT *Create = reinterpret_cast<CREATESTRUCT *>(LParam);
+            WindowState = reinterpret_cast<win32_window_state *>(Create->lpCreateParams);
+            SetWindowLongPtr(Window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(WindowState));
+            //Get client dimensions
+            win32_client_dim ClientDim = Win32GetClientDimension(Window);
+            WindowState->ClientWidth = ClientDim.Width;
+            WindowState->ClientHeight = ClientDim.Height;
+            //Initialize the cursor to the center of the screen...
+            SetCursorPos(ClientDim.Width / 2, ClientDim.Height / 2);
+        }
     }
     break;
     case WM_DESTROY:
@@ -123,7 +137,8 @@ LRESULT CALLBACK Win32TinyRendererWindowProc(HWND Window, UINT Msg, WPARAM WPara
         {
             wglDeleteContext(RenderingContext);
         }
-        WindowState.Running = FALSE;
+        win32_window_state *WindowState = Win32GetWindowState(Window);
+        WindowState->Running = FALSE;
         OUTPUT_DEBUG("WM_DESTROY\n");
     }
     break;
@@ -135,16 +150,37 @@ LRESULT CALLBACK Win32TinyRendererWindowProc(HWND Window, UINT Msg, WPARAM WPara
         {
             wglDeleteContext(RenderingContext);
         }
-        WindowState.Running = FALSE;
+        win32_window_state *WindowState = Win32GetWindowState(Window);
+        WindowState->Running = FALSE;
         OUTPUT_DEBUG("WM_CLOSE\n");
     }
     break;
     case WM_SIZE:
     {
+        win32_window_state *WindowState = Win32GetWindowState(Window);
         win32_client_dim NewClientDim = Win32GetClientDimension(Window);
-        WindowState.ClientHeight = NewClientDim.Height;
-        WindowState.ClientWidth = NewClientDim.Width;
+        WindowState->ClientHeight = NewClientDim.Height;
+        WindowState->ClientWidth = NewClientDim.Width;
         OUTPUT_DEBUG("WM_SIZE\n");
+    }
+    break;
+    case WM_SETCURSOR:
+    {
+        if (HIDE_CURSOR)
+        {
+            SetCursor(0);
+        }
+        else
+        {
+            DefWindowProcA(Window, Msg, WParam, LParam);
+        }
+    }
+    break;
+    case WM_MOUSEMOVE:
+    {
+        win32_window_state *WindowState = Win32GetWindowState(Window);
+        WindowState->MousePosition.x = GET_X_LPARAM(LParam);
+        WindowState->MousePosition.y = GET_Y_LPARAM(LParam);
     }
     break;
     default:
@@ -157,7 +193,8 @@ LRESULT CALLBACK Win32TinyRendererWindowProc(HWND Window, UINT Msg, WPARAM WPara
     return Result;
 }
 
-void Win32ProcessPendingWindowMessages()
+//TODO: IMPORTANT: Add keybaord and mouse event handling!
+void Win32ProcessPendingWindowMessages(win32_window_state *WindowState, tiny_renderer_input *Input)
 {
     MSG Message;
     while (PeekMessageA(&Message, 0, 0, 0, PM_REMOVE) != 0)
@@ -173,7 +210,7 @@ void Win32ProcessPendingWindowMessages()
             {
                 wglDeleteContext(RenderingContext);
             }
-            WindowState.Running = FALSE;
+            WindowState->Running = FALSE;
         }
         break;
 
@@ -299,4 +336,21 @@ bool32 Win32OpenDebugConsole()
         std::cout << "-----> Tiny Renderer DEBUG console! <-----" << std::endl;
     }
     return Result;
+}
+
+void Win32ProcessMouseInput(HWND Window, win32_window_state *WindowState, tiny_renderer_input *Input)
+{
+    int32 CenterX = WindowState->ClientWidth / 2;
+    int32 CenterY = WindowState->ClientHeight / 2;
+
+    int32 XDiff = WindowState->MousePosition.x - CenterX;
+    int32 YDiff = WindowState->MousePosition.y - CenterY;
+
+    Input->Mouse.dX = static_cast<real32>(XDiff);
+    Input->Mouse.dY = static_cast<real32>(YDiff);
+
+    POINT CenterPos = {CenterX, CenterY};
+    ClientToScreen(Window, &CenterPos);
+
+    SetCursorPos(CenterPos.x, CenterPos.y);
 }
