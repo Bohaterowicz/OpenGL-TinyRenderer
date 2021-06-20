@@ -29,6 +29,12 @@
 struct win32_window_state
 {
     bool32 Running;
+    bool32 TrapCursor;
+    bool32 Active;
+
+    RECT PreviousCursorClip;
+    RECT WindowCursorClip;
+
     uint32 ClientWidth;
     uint32 ClientHeight;
     POINT MousePosition;
@@ -47,6 +53,7 @@ struct win32_client_dim Win32GetClientDimension(HWND WindowHandle);
 bool32 Win32SetPixelFormat(HWND Window);
 bool32 Win32OpenDebugConsole();
 void Win32ProcessMouseInput(HWND Window, win32_window_state *WindowState, tiny_renderer_input *Input);
+void Win32ProcessKeyboardInput(button_state &NewState, bool32 IsDown);
 
 //Get the window state pointer stored in window handle during CreateWindowEx call
 inline win32_window_state *Win32GetWindowState(HWND hwnd)

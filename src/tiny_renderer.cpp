@@ -23,10 +23,6 @@
 #define FRUSTUM_Z_FAR 100000.f
 #define CAMERA_FOV 45.0f
 
-#define CAMERA_POLAR_INIT_X 0.0f
-#define CAMERA_POLAR_INIT_Y -45.0f
-#define CAMERA_POLAR_INIT_Z 150.0f
-
 ///////////////////////////////
 
 struct un_proj
@@ -35,81 +31,10 @@ struct un_proj
 	glm::ivec2 WindowSize;
 };
 
-static real32 AspectRatio;
-static bool32 UpdateAspectRatio;
 static bool32 invers;
-static glm::vec3 CameraPolarPos;
-static glm::vec3 CameraPosChange;
 static glm::vec2 CameraRotChange;
 
 static un_proj UnProj;
-
-/*
-
-void KeyboardInputCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
-{
-	if (key == GLFW_KEY_W && action == GLFW_REPEAT)
-	{
-		CameraPosChange.x = 1.0f;
-	}
-	if (key == GLFW_KEY_S && action == GLFW_REPEAT)
-	{
-		CameraPosChange.x = -1.0f;
-	}
-	if (key == GLFW_KEY_A && action == GLFW_REPEAT)
-	{
-		CameraPosChange.y = -1.0f;
-	}
-	if (key == GLFW_KEY_D && action == GLFW_REPEAT)
-	{
-		CameraPosChange.y = 1.0f;
-	}
-	if (key == GLFW_KEY_Q && action == GLFW_REPEAT)
-	{
-		CameraPosChange.z = -1.0f;
-	}
-	if (key == GLFW_KEY_E && action == GLFW_REPEAT)
-	{
-		CameraPosChange.z = 1.0f;
-	}
-
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-	{
-		std::cout << "ESCAPE..." << std::endl;
-		glfwSetWindowShouldClose(window, 1);
-	}
-
-	if (key == GLFW_KEY_I && action == GLFW_PRESS)
-	{
-		std::cout << "I pressed" << std::endl;
-		if (invers)
-		{
-			invers = false;
-		}
-		else
-		{
-			invers = true;
-		}
-	}
-}
-
-
-void CursorPosCallback(GLFWwindow *window, double xpos, double ypos)
-{
-	int W, H;
-	glfwGetWindowSize(window, &W, &H);
-
-	real32 CenterX = ((real32)W) / 2.0f;
-	real32 CenterY = ((real32)H) / 2.0f;
-
-	real32 dX = xpos - CenterX;
-	real32 dY = ypos - CenterY;
-
-	CameraRotChange = glm::vec2(dX, dY);
-
-	glfwSetCursorPos(window, CenterX, CenterY);
-}
-*/
 
 glm::mat4 TranslationMtx(real32 Offset)
 {
@@ -222,15 +147,11 @@ void BuildGaussianData(std::vector<GLubyte> &TextureData, int CosAngleResolution
 void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state &TinyRendererState, tiny_renderer_input &Input)
 {
 
-	CameraPolarPos.x = CAMERA_POLAR_INIT_X;
-	CameraPolarPos.y = CAMERA_POLAR_INIT_Y;
-	CameraPolarPos.z = CAMERA_POLAR_INIT_Z;
-
 	if (TinyRendererState.IsInitialized == FALSE)
 	{
 		//Create our OpenGL Renderer object, this object perform all the draw calls, and other associated functionality
 		TinyRendererState.OpenGlRenderer = std::make_unique<opengl_renderer>();
-		AspectRatio = (real32)WindowInfo.ClientWidth / (real32)WindowInfo.ClientHeight;
+		real32 AspectRatio = (real32)WindowInfo.ClientWidth / (real32)WindowInfo.ClientHeight;
 		TinyRendererState.Camera = std::make_unique<base_camera>(base_camera::FrustumScaleFromFOV(CAMERA_FOV), AspectRatio, FRUSTUM_Z_NEAR, FRUSTUM_Z_FAR);
 		TinyRendererState.IsInitialized = TRUE;
 	}
@@ -238,6 +159,7 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 	auto &Renderer = *TinyRendererState.OpenGlRenderer;
 
 	{
+		int x = 1;
 		GLCall(glViewport(0, 0, WindowInfo.ClientWidth, WindowInfo.ClientHeight));
 		auto &Camera = *TinyRendererState.Camera;
 
@@ -258,33 +180,33 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 		GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
 		//We read source code from our shader files
-		std::string VertexShaderSource = ReadFile("../../../resources/shaders/test_texture_vert.glsl");
-		std::string FragmentShaderSource = ReadFile("../../../resources/shaders/checker_texture_frag.glsl");
+		//std::string VertexShaderSource = ReadFile("../../../resources/shaders/test_texture_vert.glsl");
+		//std::string FragmentShaderSource = ReadFile("../../../resources/shaders/checker_texture_frag.glsl");
 		//We create (compile) shader during construction
-		shader_program Shader(VertexShaderSource, FragmentShaderSource);
-		Shader.Bind();
+		//shader_program Shader(VertexShaderSource, FragmentShaderSource);
+		//Shader.Bind();
 
-		Renderer.CreateUniformBuffer("CameraProjectionMtxStack", 2 * sizeof(glm::mat4));
-		Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
-		Renderer.BindUniformBuffer("CameraProjectionMtxStack", 1);
-		Shader.BindUniformBlock("ub_GlobalMatrices", 1);
+		//Renderer.CreateUniformBuffer("CameraProjectionMtxStack", 2 * sizeof(glm::mat4));
+		//Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera.GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
+		//Renderer.BindUniformBuffer("CameraProjectionMtxStack", 1);
+		//Shader.BindUniformBlock("ub_GlobalMatrices", 1);
 
 		UnProj.ClipToCamera = glm::inverse(Camera.GetPerspectiveTransform());
 		UnProj.WindowSize = glm::ivec2(WindowInfo.ClientWidth, WindowInfo.ClientHeight);
 
-		Renderer.CreateUniformBuffer("UnProjection", sizeof(un_proj));
-		Renderer.SetUniformBufferData("UnProjection", &UnProj, sizeof(un_proj), 0);
-		Renderer.BindUniformBuffer("UnProjection", 2);
-		Shader.BindUniformBlock("ub_UnProjection", 2);
+		//Renderer.CreateUniformBuffer("UnProjection", sizeof(un_proj));
+		//Renderer.SetUniformBufferData("UnProjection", &UnProj, sizeof(un_proj), 0);
+		//Renderer.BindUniformBuffer("UnProjection", 2);
+		//Shader.BindUniformBlock("ub_UnProjection", 2);
 		GLfloat maxAniso = 0.0F;
 		GLCall(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso));
 		GLuint SamplerID;
-		GLCall(glGenSamplers(1, &SamplerID));
-		GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-		GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-		GLCall(glSamplerParameterf(SamplerID, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso));
-		GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_WRAP_S, GL_REPEAT));
-		GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_WRAP_T, GL_REPEAT));
+		//GLCall(glGenSamplers(1, &SamplerID));
+		//GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+		//GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+		//GLCall(glSamplerParameterf(SamplerID, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxAniso));
+		//GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_WRAP_S, GL_REPEAT));
+		//GLCall(glSamplerParameteri(SamplerID, GL_TEXTURE_WRAP_T, GL_REPEAT));
 
 		//std::vector<uint8> GaussianTexture;
 		//BuildGaussianData(GaussianTexture, 256, 256);
@@ -293,23 +215,21 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 		//int32 Width, Height, BytesPerPixel;
 		//uint8 *PixelBuffer = nullptr;
 		//LoadPNG("../../../resources/textures/checker.png", &PixelBuffer, Width, Height, BytesPerPixel, 1);
-		texture2d CheckerTexture("../../../resources/textures/checker.png", false, 8, 1);
+		//texture2d CheckerTexture("../../../resources/textures/checker.png", false, 8, 1);
 		//texture2d ShineTexture(PixelBuffer, Width, Height, BytesPerPixel);
 
 		//GaussAngleTexture.Bind(0);
 		//GLCall(glBindSampler(0, SamplerID));
 		//Shader.SetUniform1i("gaussianTexture", 0);
-		CheckerTexture.Bind(0);
-		GLCall(glBindSampler(0, SamplerID));
-		Shader.SetUniform1i("checkerTexture", 0);
+		//CheckerTexture.Bind(0);
+		//GLCall(glBindSampler(0, SamplerID));
+		//Shader.SetUniform1i("checkerTexture", 0);
 
-		Shader.Unbind();
+		//Shader.Unbind();
 
 		//Main loop
 		float OffsetX = 0.0f;
 		float OffsetY = 0.0f;
-
-		CameraPosChange = {};
 
 		glm::mat4 BaseTranslation(1.0f);
 		BaseTranslation[3].z = -50.0f;
@@ -321,14 +241,13 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 		Renderer.Clear();
 
 		//Perform a draw call via our renderer
-		Shader.Bind();
+		//Shader.Bind();
 		CameraRotChange = glm::vec2(Input.Mouse.dX, Input.Mouse.dY);
-		Camera.UpdatePosition(CameraPosChange);
+		Camera.ProcessInput(Input);
 		Camera.UpdateForwardVector(CameraRotChange);
 		//CameraRotChange = {};
-		CameraPosChange = {};
 		CamTransMtx = Camera.GetCmameraTransformationMatrix(); //CalcLookAtMatrix(CameraOrbitPosition(), CameraTargetPos, glm::vec3(0.0f, 1.0f, 0.0f));
-		Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), 0);
+		//Renderer.SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), 0);
 		//Shader.SetUniformMtx4("u_ModelTransformation", ModelTrans);
 		NormalTrans = glm::mat3(CamTransMtx);
 		//Used to fix normals when using non uniform scaling....
@@ -337,11 +256,11 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 			NormalTrans = glm::transpose(glm::inverse(NormalTrans));
 		}
 		CamLightPos = (CamTransMtx * (RotationMtx() * LightPos));
-		Shader.SetUniform3f("u_CameraSpaceLight", CamLightPos);
-		Shader.SetUniform1i("u_UseSquaredAttenuationDistance", 1);
-		Shader.SetUniform1f("u_LightAttenuation", 0.0001f);
-		Renderer.Draw(OBJVertexArray, OBJIndexBuffer, Shader);
-		Shader.Unbind();
+		//Shader.SetUniform3f("u_CameraSpaceLight", CamLightPos);
+		//Shader.SetUniform1i("u_UseSquaredAttenuationDistance", 1);
+		//Shader.SetUniform1f("u_LightAttenuation", 0.0001f);
+		//Renderer.Draw(OBJVertexArray, OBJIndexBuffer, Shader);
+		//Shader.Unbind();
 
 		/*
 		while (!glfwWindowShouldClose(Window))

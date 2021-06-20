@@ -6,6 +6,10 @@
 
 #define TARGET_FRAMERATE 60
 #define HIDE_CURSOR 1
+#define PAUSE_INACTIVE TRUE
+
+#define WAS_DOWN_BIT_SHIFT 30
+#define IS_DOWN_BIT_SHIFT 31
 
 //Windows Entry point
 INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In_ LPSTR CmdLine, _In_ int ShowCmd)
@@ -76,15 +80,21 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
             WindowState->Running = TRUE;
             while (WindowState->Running == TRUE)
             {
+                //NOTE: We need to process our window messages even if our window is inactive!
                 Win32ProcessPendingWindowMessages(WindowState, &Input);
-                Win32ProcessMouseInput(Window, WindowState, &Input);
-                tiny_renderer_window_info WindowInfo = {};
-                WindowInfo.ClientWidth = WindowState->ClientWidth;
-                WindowInfo.ClientHeight = WindowState->ClientWidth;
-                UpdateAndRender(WindowInfo, TinyRendererState, Input);
-                HDC WindowDC = GetDC(Window);
-                SwapBuffers(WindowDC);
-                ReleaseDC(Window, WindowDC);
+                if (WindowState->Active == TRUE || PAUSE_INACTIVE == FALSE)
+                {
+                    Win32ProcessMouseInput(Window, WindowState, &Input);
+                    tiny_renderer_window_info WindowInfo = {};
+                    WindowInfo.ClientWidth = WindowState->ClientWidth;
+                    WindowInfo.ClientHeight = WindowState->ClientWidth;
+                    UpdateAndRender(WindowInfo, TinyRendererState, Input);
+                    //NOTE: Clear input after update step
+                    //Input = {};
+                    HDC WindowDC = GetDC(Window);
+                    SwapBuffers(WindowDC);
+                    ReleaseDC(Window, WindowDC);
+                }
             }
         }
         else
@@ -127,6 +137,29 @@ LRESULT CALLBACK Win32TinyRendererWindowProc(HWND Window, UINT Msg, WPARAM WPara
             //Initialize the cursor to the center of the screen...
             SetCursorPos(ClientDim.Width / 2, ClientDim.Height / 2);
         }
+    }
+    break;
+    case WM_ACTIVATEAPP:
+    {
+        if (WParam == TRUE)
+        {
+            //Window is being activated
+            win32_window_state *WindowState = Win32GetWindowState(Window);
+            GetClipCursor(&WindowState->PreviousCursorClip);
+            GetWindowRect(Window, &WindowState->WindowCursorClip);
+            ClipCursor(&WindowState->WindowCursorClip);
+            WindowState->TrapCursor = TRUE;
+            WindowState->Active = TRUE;
+        }
+        else
+        {
+            //Window is being deactivated
+            win32_window_state *WindowState = Win32GetWindowState(Window);
+            ClipCursor(&WindowState->PreviousCursorClip);
+            WindowState->TrapCursor = FALSE;
+            WindowState->Active = FALSE;
+        }
+        OUTPUT_DEBUG("WM_ACTIVATEAPP\n");
     }
     break;
     case WM_DESTROY:
@@ -193,7 +226,6 @@ LRESULT CALLBACK Win32TinyRendererWindowProc(HWND Window, UINT Msg, WPARAM WPara
     return Result;
 }
 
-//TODO: IMPORTANT: Add keybaord and mouse event handling!
 void Win32ProcessPendingWindowMessages(win32_window_state *WindowState, tiny_renderer_input *Input)
 {
     MSG Message;
@@ -213,7 +245,48 @@ void Win32ProcessPendingWindowMessages(win32_window_state *WindowState, tiny_ren
             WindowState->Running = FALSE;
         }
         break;
-
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP:
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        {
+            uint32 VKCode = (uint32)Message.wParam;
+            bool32 WasDown = ((Message.lParam & (1LL << WAS_DOWN_BIT_SHIFT)) != 0 ? TRUE : FALSE);
+            bool32 IsDown = ((Message.lParam & (1LL << IS_DOWN_BIT_SHIFT)) == 0 ? TRUE : FALSE);
+            if (WasDown != IsDown)
+            {
+                if (VKCode == 'W')
+                {
+                    Win32ProcessKeyboardInput(Input->Controller[0].MoveForward, IsDown);
+                }
+                if (VKCode == 'A')
+                {
+                    Win32ProcessKeyboardInput(Input->Controller[0].MoveLeft, IsDown);
+                }
+                if (VKCode == 'S')
+                {
+                    Win32ProcessKeyboardInput(Input->Controller[0].MoveBack, IsDown);
+                }
+                if (VKCode == 'D')
+                {
+                    Win32ProcessKeyboardInput(Input->Controller[0].MoveRight, IsDown);
+                }
+                if (VKCode == 'Q')
+                {
+                    Win32ProcessKeyboardInput(Input->Controller[0].MoveDown, IsDown);
+                }
+                if (VKCode == 'E')
+                {
+                    Win32ProcessKeyboardInput(Input->Controller[0].MoveUp, IsDown);
+                }
+                if (VKCode == VK_ESCAPE)
+                {
+                    PostQuitMessage(0);
+                    OUTPUT_DEBUG("ESCAPE (QUIT)\n");
+                }
+            }
+        }
+        break;
         default:
         {
             TranslateMessage(&Message);
@@ -349,8 +422,20 @@ void Win32ProcessMouseInput(HWND Window, win32_window_state *WindowState, tiny_r
     Input->Mouse.dX = static_cast<real32>(XDiff);
     Input->Mouse.dY = static_cast<real32>(YDiff);
 
-    POINT CenterPos = {CenterX, CenterY};
-    ClientToScreen(Window, &CenterPos);
+    if (WindowState->TrapCursor == TRUE)
+    {
+        POINT CenterPos = {CenterX, CenterY};
+        ClientToScreen(Window, &CenterPos);
 
-    SetCursorPos(CenterPos.x, CenterPos.y);
+        SetCursorPos(CenterPos.x, CenterPos.y);
+    }
+}
+
+void Win32ProcessKeyboardInput(button_state &NewState, bool32 IsDown)
+{
+    if (NewState.EndedDown != IsDown)
+    {
+        NewState.EndedDown = IsDown;
+        NewState.HalfTransisionCount++;
+    }
 }
