@@ -52,4 +52,6 @@ struct tiny_renderer_input
 {
     mouse_input Mouse;
     input_controller Controller[SUPPORTED_CONTROLLER_COUNT];
+
+    real32 FrameDt;
 };

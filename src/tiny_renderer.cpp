@@ -215,7 +215,7 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 		//int32 Width, Height, BytesPerPixel;
 		//uint8 *PixelBuffer = nullptr;
 		//LoadPNG("../../../resources/textures/checker.png", &PixelBuffer, Width, Height, BytesPerPixel, 1);
-		//texture2d CheckerTexture("../../../resources/textures/checker.png", false, 8, 1);
+		texture2d CheckerTexture("../../../resources/textures/checker.png", false, 8, 1);
 		//texture2d ShineTexture(PixelBuffer, Width, Height, BytesPerPixel);
 
 		//GaussAngleTexture.Bind(0);

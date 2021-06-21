@@ -10,6 +10,11 @@
 #define Gigabytes(Size) (Megabytes(Size) * 1024LL)
 #define Terabytes(Size) (Gigabytes(Size) * 1024LL)
 
+#define Kilo(N) ((N)*1000LL)
+#define Mega(N) (Kilo(N) * 1000LL)
+#define Giga(N) (Mega(N) * 1000LL)
+#define Tera(N) (Giga(N) * 1000LL)
+
 #define Minimum(A, B) (((A) < (B)) ? (A) : (B))
 #define Maximum(A, B) (((A) > (B)) ? (A) : (B))
 
