@@ -87,6 +87,9 @@ void base_camera::ProcessInput(tiny_renderer_input &Input)
 	}
 
 	UpdatePosition(UpdatePos);
+
+	glm::vec2 CameraRotChange = glm::vec2(Input.Mouse.dX, Input.Mouse.dY);
+	UpdateForwardVector(CameraRotChange);
 }
 
 real32 base_camera::FrustumScaleFromFOV(real32 FOVAngle)

@@ -1,6 +1,7 @@
 #pragma once
 #include "tiny_renderer_c.h"
 #include "tiny_renderer.h"
+#include "tiny_renderer_state.h"
 #include <Windows.h>
 #include <Windowsx.h>
 

@@ -22,13 +22,27 @@ opengl_renderer::opengl_renderer()
 	GLDEBUG("Specified clear colors");
 }
 
-void opengl_renderer::Draw(const vertex_array &VertexArray, const index_buffer &IndexBuffer, const shader_program &Shader) const
+void opengl_renderer::SetViewportDimensions(uint32 X, uint32 Y, uint32 Width, uint32 Height)
 {
-	VertexArray.Bind();
-	IndexBuffer.Bind();
-	Shader.Bind();
+	GLCall(glViewport(X, Y, Width, Height));
+}
 
-	GLCall(glDrawElements(GL_TRIANGLES, IndexBuffer.GetCount(), GL_UNSIGNED_INT, nullptr));
+void opengl_renderer::EnableAlphaBlending()
+{
+	GLCall(glEnable(GL_BLEND));
+	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+}
+
+void opengl_renderer::Draw(const render_object *RenderObject, const shader_program *Shader) const
+{
+	RenderObject->GetVertexBuffer()->Bind();
+	RenderObject->GetVertexArray()->Bind();
+	RenderObject->GetIndexBuffer()->Bind();
+	Shader->Bind();
+
+	GLCall(glDrawElements(GL_TRIANGLES, RenderObject->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr));
+
+	Shader->Unbind();
 }
 
 void opengl_renderer::CreateUniformBuffer(std::string Name, size_t Size, void *Data)

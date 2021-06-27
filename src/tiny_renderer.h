@@ -3,14 +3,8 @@
 #include "opengl_renderer.h"
 #include "base_camera.h"
 #include "tiny_renderer_input.h"
+#include "tiny_renderer_state.h"
 #include <memory>
-
-struct tiny_renderer_state
-{
-    bool32 IsInitialized;
-    std::unique_ptr<opengl_renderer> OpenGlRenderer;
-    std::unique_ptr<base_camera> Camera;
-};
 
 struct tiny_renderer_window_info
 {

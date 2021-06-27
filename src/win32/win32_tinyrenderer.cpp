@@ -70,7 +70,7 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
 
             //Create main renederer state struct and Input struct.
             //IMPORTANT: MUST be initialized to zero!
-            tiny_renderer_state TinyRendererState = {};
+            auto TinyRendererState = std::make_unique<tiny_renderer_state>();
             tiny_renderer_input Input = {};
 
             LARGE_INTEGER LastCounter = Win32GetWallClock();
@@ -91,7 +91,7 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
                     tiny_renderer_window_info WindowInfo = {};
                     WindowInfo.ClientWidth = WindowState->ClientWidth;
                     WindowInfo.ClientHeight = WindowState->ClientWidth;
-                    UpdateAndRender(WindowInfo, TinyRendererState, Input);
+                    UpdateAndRender(WindowInfo, *(TinyRendererState.get()), Input);
                     HDC WindowDC = GetDC(Window);
                     SwapBuffers(WindowDC);
                     ReleaseDC(Window, WindowDC);
@@ -329,7 +329,7 @@ bool32 Win32InitializeOpenGL(HWND Window)
                     OUTPUT_DEBUG((OGLText + GLVersionStr + "\n").c_str());
 
                     //NOTE: IMPORTANT: Activates vsync (swap buffers on vertical blank)!
-                    wglSwapIntervalEXT(0);
+                    wglSwapIntervalEXT(VSYNC);
 
                     InitializationResult = TRUE;
                 }
