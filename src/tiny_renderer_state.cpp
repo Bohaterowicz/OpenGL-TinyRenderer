@@ -1,4 +1,5 @@
 #include "tiny_renderer_state.h"
+#include "opengl_util.h"
 
 tiny_renderer_state::tiny_renderer_state()
     : Initialized(FALSE), Renderer(nullptr), Camera(nullptr)
@@ -27,6 +28,7 @@ bool32 tiny_renderer_state::CreateRenderObject(mesh_data &Mesh)
     OBJVertexArray->SetVertexBufferLayout(&OBJVertexBufferLayout);
     auto OBJIndexBuffer = std::make_unique<index_buffer>(Mesh);
     RenderObjects.push_back(std::make_unique<render_object>(std::move(OBJVertexBuffer), std::move(OBJVertexArray), std::move(OBJIndexBuffer)));
+    GLDEBUG("CREATED OBJECT");
     return TRUE;
 }
 

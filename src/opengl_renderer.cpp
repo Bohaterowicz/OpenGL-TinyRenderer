@@ -1,6 +1,7 @@
 #include "opengl_renderer.h"
 #include "opengl_util.h"
 #include <GL/glew.h>
+#include <glm/gtc/type_ptr.hpp>
 
 opengl_renderer::opengl_renderer()
 {
@@ -17,7 +18,7 @@ opengl_renderer::opengl_renderer()
 	GLCall(glDepthRange(0.0F, 1.0F));
 	GLDEBUG("Enabled depth testing");
 
-	GLCall(glClearColor(1.0F, 1.0F, 1.0F, 1.0F));
+	GLCall(glClearColor(0.7F, 0.7F, 0.7F, 1.0F));
 	GLCall(glClearDepth(1.0F));
 	GLDEBUG("Specified clear colors");
 }
@@ -33,15 +34,20 @@ void opengl_renderer::EnableAlphaBlending()
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 }
 
-void opengl_renderer::Draw(const render_object *RenderObject, const shader_program *Shader) const
+void opengl_renderer::Draw(std::vector<std::unique_ptr<render_object>> const *RenderObjects, const shader_program *Shader)
 {
-	RenderObject->GetVertexBuffer()->Bind();
-	RenderObject->GetVertexArray()->Bind();
-	RenderObject->GetIndexBuffer()->Bind();
 	Shader->Bind();
+	for (const auto &Object : *RenderObjects)
+	{
+		Object->ComputeModelTransform();
+		glm::mat4 ModelTransform = Object->GetModelTransform();
+		SetUniformBufferData("MVPMtxStack", glm::value_ptr(ModelTransform), sizeof(glm::mat4), 0);
+		Object->GetVertexBuffer()->Bind();
+		Object->GetVertexArray()->Bind();
+		Object->GetIndexBuffer()->Bind();
 
-	GLCall(glDrawElements(GL_TRIANGLES, RenderObject->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr));
-
+		GLCall(glDrawElements(GL_TRIANGLES, Object->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr));
+	}
 	Shader->Unbind();
 }
 

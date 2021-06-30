@@ -88,8 +88,20 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 		TinyRendererState.SetRenderer(std::make_unique<opengl_renderer>());
 		real32 AspectRatio = (real32)WindowInfo.ClientWidth / (real32)WindowInfo.ClientHeight;
 		TinyRendererState.SetCamera(std::make_unique<base_camera>(base_camera::FrustumScaleFromFOV(CAMERA_FOV), AspectRatio, FRUSTUM_Z_NEAR, FRUSTUM_Z_FAR));
-		mesh_data Mesh = ReadObjFile("../../../resources/meshes/plane_big.obj");
-		TinyRendererState.CreateRenderObject(Mesh);
+		mesh_data Mesh1 = ReadObjFile("../../../resources/meshes/plane_big.obj");
+		mesh_data Mesh2 = ReadObjFile("../../../resources/meshes/knot.obj");
+		TinyRendererState.CreateRenderObject(Mesh1);
+		TinyRendererState.CreateRenderObject(Mesh2);
+
+		glm::vec3 Pos(-600.0F, 300.0F, 0.0F);
+		glm::vec3 Scale(3.0F);
+		glm::vec3 Rot(glm::radians(90.0F), 0.0F, 0.0F);
+		auto *Obj = TinyRendererState.GetRenderObject(1);
+		Obj->SetPosition(Pos);
+		Obj->SetScale(Scale);
+		Obj->SetRotation(Rot);
+
+		Input = {};
 
 		//We read source code from our shader files
 		std::string VertexShaderSource = ReadFile("../../../resources/shaders/test_texture_vert.glsl");
@@ -98,8 +110,8 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 		auto Shader = std::make_unique<shader_program>(VertexShaderSource, FragmentShaderSource);
 		TinyRendererState.AddShader(std::move(Shader));
 
-		TinyRendererState.GetRenderer()->CreateUniformBuffer("CameraProjectionMtxStack", 2 * sizeof(glm::mat4));
-		TinyRendererState.GetRenderer()->CreateUniformBuffer("UnProjection", sizeof(un_proj));
+		TinyRendererState.GetRenderer()->CreateUniformBuffer("MVPMtxStack", 3 * sizeof(glm::mat4));
+		//TinyRendererState.GetRenderer()->CreateUniformBuffer("UnProjection", sizeof(un_proj));
 
 		auto CheckerTexture = std::make_unique<texture2d>("../../../resources/textures/checker.png", false, 8, 1);
 		CheckerTexture->Bind(0);
@@ -122,16 +134,16 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 
 	Shader->Bind();
 
-	Renderer->SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(Camera->GetPerspectiveTransform()), sizeof(glm::mat4), sizeof(glm::mat4));
-	Renderer->BindUniformBuffer("CameraProjectionMtxStack", 1);
-	Shader->BindUniformBlock("ub_GlobalMatrices", 1);
+	Renderer->SetUniformBufferData("MVPMtxStack", glm::value_ptr(Camera->GetPerspectiveTransform()), sizeof(glm::mat4), 2 * sizeof(glm::mat4));
+	Renderer->BindUniformBuffer("MVPMtxStack", 1);
+	Shader->BindUniformBlock("ub_MVP", 1);
 
 	UnProj.ClipToCamera = glm::inverse(Camera->GetPerspectiveTransform());
 	UnProj.WindowSize = glm::ivec2(WindowInfo.ClientWidth, WindowInfo.ClientHeight);
 
-	Renderer->SetUniformBufferData("UnProjection", &UnProj, sizeof(un_proj), 0);
-	Renderer->BindUniformBuffer("UnProjection", 2);
-	Shader->BindUniformBlock("ub_UnProjection", 2);
+	//Renderer->SetUniformBufferData("UnProjection", &UnProj, sizeof(un_proj), 0);
+	//Renderer->BindUniformBuffer("UnProjection", 2);
+	//Shader->BindUniformBlock("ub_UnProjection", 2);
 	GLfloat maxAniso = 0.0F;
 	GLCall(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso));
 	GLuint SamplerID;
@@ -167,7 +179,6 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 	glm::mat4 BaseTranslation(1.0f);
 	BaseTranslation[3].z = -50.0f;
 	glm::mat4 CamTransMtx;
-	glm::mat4 ModelTrans(1.0f);
 	glm::mat3 NormalTrans;
 	glm::vec3 CamLightPos;
 	glm::vec4 LightPos(55.0f, 40.0f, 0.0f, 1.0f);
@@ -178,8 +189,7 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 	Camera->ProcessInput(Input);
 	//CameraRotChange = {};
 	CamTransMtx = Camera->GetCmameraTransformationMatrix(); //CalcLookAtMatrix(CameraOrbitPosition(), CameraTargetPos, glm::vec3(0.0f, 1.0f, 0.0f));
-	Renderer->SetUniformBufferData("CameraProjectionMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), 0);
-	Shader->SetUniformMtx4("u_ModelTransformation", ModelTrans);
+	Renderer->SetUniformBufferData("MVPMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), sizeof(glm::mat4));
 	NormalTrans = glm::mat3(CamTransMtx);
 	//Used to fix normals when using non uniform scaling....
 	if (invers)
@@ -190,6 +200,6 @@ void UpdateAndRender(tiny_renderer_window_info &WindowInfo, tiny_renderer_state 
 	//Shader->SetUniform3f("u_CameraSpaceLight", CamLightPos);
 	Shader->SetUniform1i("u_UseSquaredAttenuationDistance", 1);
 	Shader->SetUniform1f("u_LightAttenuation", 0.0001f);
-	Renderer->Draw(TinyRendererState.GetRenderObject(0), Shader);
 	Shader->Unbind();
+	Renderer->Draw(TinyRendererState.GetRenderObjects(), Shader);
 }

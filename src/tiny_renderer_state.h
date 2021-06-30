@@ -32,5 +32,6 @@ public:
     inline opengl_renderer *GetRenderer() const { return Renderer.get(); }
     inline base_camera *GetCamera() const { return Camera.get(); }
     inline render_object *GetRenderObject(uint32 Idx) const { return RenderObjects[Idx].get(); }
+    inline std::vector<std::unique_ptr<render_object>> const *GetRenderObjects() const { return &RenderObjects; }
     inline shader_program *GetShader(uint32 Idx) const { return Shaders[Idx].get(); }
 };

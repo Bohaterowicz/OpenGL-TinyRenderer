@@ -22,7 +22,7 @@ public:
 	opengl_renderer();
 	static void SetViewportDimensions(uint32 X, uint32 Y, uint32 Width, uint32 Height);
 	static void EnableAlphaBlending();
-	void Draw(const render_object *RenderObject, const shader_program *Shader) const;
+	void Draw(std::vector<std::unique_ptr<render_object>> const *RenderObjects, const shader_program *Shader);
 	void CreateUniformBuffer(std::string Name, size_t Size, void *Data = nullptr);
 	void SetUniformBufferData(std::string Name, void *Data, size_t Size, size_t BufferOffset);
 	void BindUniformBuffer(std::string Name, uint32 BindIndex, size_t Size = 0, size_t Offset = 0);
