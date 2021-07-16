@@ -72,6 +72,7 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
             //IMPORTANT: MUST be initialized to zero!
             auto TinyRendererState = std::make_unique<tiny_renderer_state>();
             tiny_renderer_input Input = {};
+            input_controller OldController = {};
 
             LARGE_INTEGER LastCounter = Win32GetWallClock();
             uint64 LastCycleCount = __rdtsc();
@@ -80,7 +81,15 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
             WindowState->Running = TRUE;
             while (WindowState->Running == TRUE)
             {
+                Input = {};
                 Input.FrameDt = TargetSecondsPerFrame;
+
+                //Copy the end state of buttons from previous frame to handle repeated keys (press and hold)
+                for (int32 ButtonIndex = 0; ButtonIndex < ArrayCount(OldController.Buttons); ButtonIndex++)
+                {
+                    Input.Controller[0].Buttons[ButtonIndex].EndedDown = OldController.Buttons[ButtonIndex].EndedDown;
+                }
+
                 //NOTE: We need to process our window messages even if our window is inactive!
                 Win32ProcessPendingWindowMessages(WindowState, &Input);
                 //we want to pause (not update) the app if window is inactive and PAUSE_INACTIVE is set to true
@@ -96,6 +105,8 @@ INT WINAPI WinMain(_In_ HINSTANCE Instance, _In_opt_ HINSTANCE PrevInstance, _In
                     SwapBuffers(WindowDC);
                     ReleaseDC(Window, WindowDC);
                 }
+
+                OldController = Input.Controller[0];
 
                 LARGE_INTEGER EndCounter = Win32GetWallClock();
                 real32 MSPerFrame = SECONDS_TO_MILLISECONDS(Win32GetSecondsElapsed(LastCounter, EndCounter, PerfCountFrequency));
@@ -455,6 +466,10 @@ void Win32ProcessKeys(MSG &Message, tiny_renderer_input *Input)
         if (VKCode == 'E')
         {
             Win32ProcessKeyboardInput(Input->Controller[0].MoveUp, IsDown);
+        }
+        if (VKCode == VK_F1)
+        {
+            Win32ProcessKeyboardInput(Input->Controller[0].ActionWireframe, IsDown);
         }
         if (VKCode == VK_ESCAPE)
         {

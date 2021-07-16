@@ -1,5 +1,6 @@
 #pragma once
 #include "tiny_renderer_c.h"
+#include "../glimg/glimage.h"
 #include <string>
 
 class texture2d
@@ -13,6 +14,7 @@ private:
 
 public:
 	texture2d(uint8 *Data, int32 Width, int32 Height, int32 BPP);
+	texture2d(std::string Path);
 	texture2d(std::string Path, bool32 Mipmaps, uint32 MipmapCount, uint32 ChannelCount);
 	~texture2d();
 

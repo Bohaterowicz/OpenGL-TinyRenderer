@@ -1,9 +1,7 @@
 #include "opengl_renderer.h"
-#include "opengl_util.h"
-#include <GL/glew.h>
 #include <glm/gtc/type_ptr.hpp>
 
-opengl_renderer::opengl_renderer()
+opengl_renderer::opengl_renderer() : WireframeActive(FALSE)
 {
 	GLDEBUG("Initialize OpenGL Renderer object");
 
@@ -34,11 +32,33 @@ void opengl_renderer::EnableAlphaBlending()
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 }
 
-void opengl_renderer::Draw(std::vector<std::unique_ptr<render_object>> const *RenderObjects, const shader_program *Shader)
+void opengl_renderer::Draw(std::vector<std::unique_ptr<render_object>> const *RenderObjects)
 {
-	Shader->Bind();
+	shader_program *CurrentShader = WireframeShader.get();
+	CurrentShader->Bind();
+
+	render_material *CurrentMaterial = nullptr;
+
 	for (const auto &Object : *RenderObjects)
 	{
+		if (WireframeActive == FALSE)
+		{
+			CurrentMaterial = Object->GetMaterial();
+			auto *MaterialShader = CurrentMaterial->GetShader();
+			if (MaterialShader != CurrentShader)
+			{
+				CurrentShader = MaterialShader;
+				CurrentShader->Bind();
+			}
+			CurrentShader->SetUniform3f("u_Color", CurrentMaterial->GetColor());
+			CurrentShader->SetUniform1i("u_UseTexture", CurrentMaterial->IsUsingColorTexture());
+			if (CurrentMaterial->IsUsingColorTexture() == TRUE)
+			{
+				CurrentMaterial->ActivateTextureWithSampler(0);
+				CurrentShader->SetUniform1i("checkerTexture", 0);
+			}
+		}
+
 		Object->ComputeModelTransform();
 		glm::mat4 ModelTransform = Object->GetModelTransform();
 		SetUniformBufferData("MVPMtxStack", glm::value_ptr(ModelTransform), sizeof(glm::mat4), 0);
@@ -48,16 +68,14 @@ void opengl_renderer::Draw(std::vector<std::unique_ptr<render_object>> const *Re
 
 		GLCall(glDrawElements(GL_TRIANGLES, Object->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr));
 	}
-	Shader->Unbind();
+	CurrentShader->Unbind();
 }
 
 void opengl_renderer::CreateUniformBuffer(std::string Name, size_t Size, void *Data)
 {
 	uint32 BufferGLID;
-	GLCall(glGenBuffers(1, &BufferGLID));
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, BufferGLID));
-	GLCall(glBufferData(GL_UNIFORM_BUFFER, Size, Data, GL_STREAM_DRAW));
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+	GLCall(glCreateBuffers(1, &BufferGLID));
+	GLCall(glNamedBufferStorage(BufferGLID, Size, Data, GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT));
 	uniform_buffer Buffer = {BufferGLID, Size};
 	UniformBuffers[Name] = Buffer;
 }
@@ -66,9 +84,7 @@ void opengl_renderer::SetUniformBufferData(std::string Name, void *Data, size_t 
 {
 	//TODO: Check if buffer exists in hash!!!!!!!!!!!
 	uint32 GLID = UniformBuffers[Name].GLID;
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, GLID));
-	GLCall(glBufferSubData(GL_UNIFORM_BUFFER, BufferOffset, Size, Data));
-	GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+	GLCall(glNamedBufferSubData(GLID, BufferOffset, Size, Data));
 }
 
 void opengl_renderer::BindUniformBuffer(std::string Name, uint32 BindIndex, size_t Size, size_t Offset)
@@ -87,7 +103,7 @@ void opengl_renderer::BindUniformBuffer(std::string Name, uint32 BindIndex, size
 	GLCall(glBindBufferRange(GL_UNIFORM_BUFFER, BindIndex, Buffer.GLID, Offset, Size));
 }
 
-void opengl_renderer::Clear() const
+void opengl_renderer::Clear()
 {
 	GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }

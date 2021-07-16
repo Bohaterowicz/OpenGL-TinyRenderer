@@ -43,3 +43,9 @@ bool32 tiny_renderer_state::AddTexture(std::unique_ptr<texture2d> Texture)
     Textures.push_back(std::move(Texture));
     return TRUE;
 }
+
+bool32 tiny_renderer_state::AddMaterial(std::unique_ptr<render_material> Material)
+{
+    Materials.push_back(std::move(Material));
+    return TRUE;
+}

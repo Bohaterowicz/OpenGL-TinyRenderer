@@ -124,7 +124,7 @@ namespace glimg{
         }
 
         decompressed_data DecompressData(uint8* DataBuffer, uint32 BufferSize){
-            decompressed_data Result;
+            decompressed_data Result = {};
 
             return Result;
         }

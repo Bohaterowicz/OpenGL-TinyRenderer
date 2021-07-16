@@ -29,8 +29,8 @@ struct input_controller
             button_state MoveRight;
             button_state MoveUp;
             button_state MoveDown;
-
-            button_state ActionLeft;
+            button_state ActionWireframe;
+            
             button_state ActionRig;
             button_state AButton;
             button_state BButton;

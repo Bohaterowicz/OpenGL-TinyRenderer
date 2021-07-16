@@ -1,8 +1,12 @@
 #pragma once
 #include <stdint.h>
 
-#if DEBUG_BUILD
-#define Assert(Expression) if(!(Expression)){*(int*)0 = 0;}
+#if DEBUG
+#define GLIMGAssert(Expression) \
+    if (!(Expression))     \
+    {                      \
+        *(int *)0 = 0;     \
+    }
 #else
 #define Assert(Expression)
 #endif
@@ -12,12 +16,15 @@
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
 #define Kilobytes(Size) ((Size)*1024LL)
-#define Megabytes(Size) (Kilobytes(Size)*1024LL)
-#define Gigabytes(Size) (Megabytes(Size)*1024LL)
-#define Terabytes(Size) (Gigabytes(Size)*1024LL)
+#define Megabytes(Size) (Kilobytes(Size) * 1024LL)
+#define Gigabytes(Size) (Megabytes(Size) * 1024LL)
+#define Terabytes(Size) (Gigabytes(Size) * 1024LL)
 
 #define Minimum(A, B) (((A) < (B)) ? (A) : (B))
 #define Maximum(A, B) (((A) > (B)) ? (A) : (B))
+
+#define TRUE 1
+#define FALSE 0
 
 typedef uint8_t uint8;
 typedef uint16_t uint16;

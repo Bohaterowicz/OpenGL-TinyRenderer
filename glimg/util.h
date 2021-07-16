@@ -6,7 +6,7 @@ namespace glimg{
     namespace util{
 
         inline uint32 TruncateUInt64ToUInt32(uint64 Value){
-            Assert(Value <= 0xFFFFFFFF);
+            GLIMGAssert(Value <= 0xFFFFFFFF);
             uint32 Result = (uint32)Value;
             return Result;
         }
