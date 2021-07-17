@@ -37,17 +37,17 @@ void base_camera::UpdateForwardVector(glm::vec2 RotationChange)
 	ForwardVector = glm::normalize(glm::vec3(glm::vec4(ForwardVector, 1.0f) * rotMtx));
 }
 
-glm::mat4 base_camera::GetCmameraTransformationMatrix()
+glm::mat4 base_camera::GetCmameraTransformationMatrix() const
 {
-	glm::mat4 CameraTransformationMatrix = glm::mat4(1.0f);
-	glm::vec3 UpVector = glm::vec3(0.0f, 1.0f, 0.0f);
+	glm::mat4 CameraTransformationMatrix = glm::mat4(1.0F);
+	glm::vec3 UpVector = glm::vec3(0.0F, 1.0F, 0.0F);
 	glm::vec3 RightVector = glm::normalize(glm::cross(ForwardVector, UpVector));
 	glm::vec3 CameraUpVector = glm::normalize(glm::cross(RightVector, ForwardVector));
-	CameraTransformationMatrix[3] = glm::vec4(-Position, 1.0f);
-	glm::mat4 CameraRotationMtx = glm::mat4(1.0f);
-	CameraRotationMtx[0] = glm::vec4(RightVector, 0.0f);
-	CameraRotationMtx[1] = glm::vec4(CameraUpVector, 0.0f);
-	CameraRotationMtx[2] = glm::vec4(-ForwardVector, 0.0f);
+	CameraTransformationMatrix[3] = glm::vec4(-Position, 1.0F);
+	glm::mat4 CameraRotationMtx = glm::mat4(1.0F);
+	CameraRotationMtx[0] = glm::vec4(RightVector, 0.0F);
+	CameraRotationMtx[1] = glm::vec4(CameraUpVector, 0.0F);
+	CameraRotationMtx[2] = glm::vec4(-ForwardVector, 0.0F);
 	CameraRotationMtx = glm::transpose(CameraRotationMtx);
 	CameraTransformationMatrix = CameraRotationMtx * CameraTransformationMatrix;
 	return CameraTransformationMatrix;

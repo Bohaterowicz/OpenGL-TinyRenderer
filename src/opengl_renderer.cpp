@@ -32,8 +32,10 @@ void opengl_renderer::EnableAlphaBlending()
 	GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 }
 
-void opengl_renderer::Draw(std::vector<std::unique_ptr<render_object>> const *RenderObjects)
+void opengl_renderer::Draw(const std::vector<std::unique_ptr<render_object>> *RenderObjects, const base_camera *Camera)
 {
+	auto CamTransMtx = Camera->GetCmameraTransformationMatrix();
+	SetUniformBufferData("MVPMtxStack", glm::value_ptr(CamTransMtx), sizeof(glm::mat4), sizeof(glm::mat4));
 	shader_program *CurrentShader = WireframeShader.get();
 	CurrentShader->Bind();
 
@@ -50,18 +52,27 @@ void opengl_renderer::Draw(std::vector<std::unique_ptr<render_object>> const *Re
 				CurrentShader = MaterialShader;
 				CurrentShader->Bind();
 			}
-			CurrentShader->SetUniform3f("u_Color", CurrentMaterial->GetColor());
-			CurrentShader->SetUniform1i("u_UseTexture", CurrentMaterial->IsUsingColorTexture());
-			if (CurrentMaterial->IsUsingColorTexture() == TRUE)
+			auto MatColor = CurrentMaterial->GetColor();
+			auto SpecularStrength = CurrentMaterial->GetSpecularStrength();
+			auto UseColorTexture = CurrentMaterial->IsUsingColorTexture();
+			SetUniformBufferData("BaseMaterial", glm::value_ptr(MatColor), sizeof(glm::vec3), 0);
+			SetUniformBufferData("BaseMaterial", &SpecularStrength, sizeof(real32), sizeof(glm::vec3));
+			SetUniformBufferData("BaseMaterial", &UseColorTexture, sizeof(bool32), sizeof(glm::vec3) + 4);
+			if (UseColorTexture == TRUE)
 			{
 				CurrentMaterial->ActivateTextureWithSampler(0);
-				CurrentShader->SetUniform1i("checkerTexture", 0);
+				CurrentShader->SetUniform1i("ColorTextureSampler", 0);
 			}
+			CurrentShader->SetUniform3f("LightPos", glm::vec3(10.0F, 1000.0F, 10.0F));
+			auto ViewPosVec = Camera->GetPosition();
+			CurrentShader->SetUniform3f("ViewPos", ViewPosVec);
 		}
 
 		Object->ComputeModelTransform();
 		glm::mat4 ModelTransform = Object->GetModelTransform();
 		SetUniformBufferData("MVPMtxStack", glm::value_ptr(ModelTransform), sizeof(glm::mat4), 0);
+		BindUniformBuffer("MVPMtxStack", 0);
+		BindUniformBuffer("BaseMaterial", 1);
 		Object->GetVertexBuffer()->Bind();
 		Object->GetVertexArray()->Bind();
 		Object->GetIndexBuffer()->Bind();

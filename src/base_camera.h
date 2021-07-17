@@ -23,9 +23,11 @@ public:
 	void UpdateAspectRatio(real32 ARatio);
 	void UpdatePosition(glm::vec3 PositionChange);
 	void UpdateForwardVector(glm::vec2 RotationChange);
-	glm::mat4 GetCmameraTransformationMatrix();
+	glm::mat4 GetCmameraTransformationMatrix() const;
 	glm::mat4 &GetPerspectiveTransform();
 	void ProcessInput(tiny_renderer_input &Input);
+
+	inline glm::vec3 GetPosition() const { return Position; }
 
 	//Static...
 	static real32 FrustumScaleFromFOV(real32 FOVAngle);

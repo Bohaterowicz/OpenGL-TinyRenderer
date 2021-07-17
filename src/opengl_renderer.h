@@ -7,6 +7,7 @@
 #include "shader_program.h"
 #include "render_object.h"
 #include "opengl_util.h"
+#include "base_camera.h"
 #include <GL/glew.h>
 
 struct uniform_buffer
@@ -27,7 +28,7 @@ public:
 	static void SetViewportDimensions(uint32 X, uint32 Y, uint32 Width, uint32 Height);
 	static void EnableAlphaBlending();
 	static void Clear();
-	void Draw(std::vector<std::unique_ptr<render_object>> const *RenderObjects);
+	void Draw(const std::vector<std::unique_ptr<render_object>> *RenderObjects, const base_camera *Camera);
 	void CreateUniformBuffer(std::string Name, size_t Size, void *Data = NULL);
 	void SetUniformBufferData(std::string Name, void *Data, size_t Size, size_t BufferOffset);
 	void BindUniformBuffer(std::string Name, uint32 BindIndex, size_t Size = 0, size_t Offset = 0);
